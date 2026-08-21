@@ -32,6 +32,11 @@ $ErrorActionPreference = 'Continue'
 $ProgressPreference = 'SilentlyContinue'   # macht Downloads spuerbar schneller
 
 $Root = if ($PSScriptRoot) { $PSScriptRoot } else { Split-Path -Parent $MyInvocation.MyCommand.Path }
+# Alle Python-Abfragen laufen ueber diese Datei. Grund: Windows PowerShell 5.1
+# reicht Anfuehrungszeichen innerhalb eines Arguments unveraendert an das
+# Programm weiter - "python -c" mit Code in Anfuehrungszeichen kommt dort
+# zerlegt an. Mit einer Datei bestehen alle Argumente nur aus einzelnen Woertern.
+$Probe = Join-Path $Root 'tools\probe.py'
 $Schritt = 0
 $Probleme = New-Object System.Collections.ArrayList
 $Erledigt = New-Object System.Collections.ArrayList
@@ -84,13 +89,34 @@ function Get-BefehlsAusgabe {
     <# Fuehrt ein Programm aus und liefert die erste Zeile der Ausgabe.
        Fehler fuehren zu $null statt zu einem Abbruch. #>
     param([string]$Datei, [string[]]$Argumente)
+    $text = Get-AusgabeText $Datei $Argumente
+    if (-not $text) { return $null }
+    $zeilen = @($text -split "`r?`n" | Where-Object { $_.Trim() })
+    if ($zeilen.Count -eq 0) { return $null }
+    return $zeilen[0].Trim()
+}
+
+function Get-AusgabeText {
+    <# Wie oben, liefert aber die vollstaendige Ausgabe.
+       Wichtig, wenn ein Programm vor der eigentlichen Antwort noch eine
+       Warnung ausgibt - dann waere "erste Zeile" die falsche Antwort. #>
+    param([string]$Datei, [string[]]$Argumente)
     try {
-        $ausgabe = & $Datei @Argumente 2>&1 | Select-Object -First 1
-        if ($LASTEXITCODE -ne 0 -and -not $ausgabe) { return $null }
-        return ([string]$ausgabe).Trim()
+        $ausgabe = & $Datei @Argumente 2>&1 | Out-String
+        if (-not $ausgabe) { return $null }
+        return $ausgabe
     } catch {
         return $null
     }
+}
+
+function Get-LetzteZeile {
+    <# Die eigentliche Antwort steht immer am Ende der Ausgabe. #>
+    param([string]$Text)
+    if (-not $Text) { return $null }
+    $zeilen = @($Text -split "`r?`n" | Where-Object { $_.Trim() })
+    if ($zeilen.Count -eq 0) { return $null }
+    return $zeilen[-1].Trim()
 }
 
 function Test-StoreStub {
@@ -112,8 +138,8 @@ function Find-Python {
 
     # 1. Der offizielle Python-Starter "py" kennt alle Installationen.
     if (Test-Befehl 'py') {
-        $pfad = Get-BefehlsAusgabe 'py' @('-3', '-c', 'import sys; print(sys.executable)')
-        if ($pfad) { [void]$kandidaten.Add($pfad) }
+        $pfad = Get-LetzteZeile (Get-AusgabeText 'py' @('-3', $script:Probe, 'pfad'))
+        if ($pfad -and (Test-Path -LiteralPath $pfad)) { [void]$kandidaten.Add($pfad) }
     }
     # 2. python aus dem PATH
     foreach ($treffer in (Get-Command python -All -ErrorAction SilentlyContinue)) {
@@ -129,15 +155,26 @@ function Find-Python {
         }
     }
 
+    $zuAlt = $null
     foreach ($pfad in ($kandidaten | Select-Object -Unique)) {
         if (-not $pfad -or -not (Test-Path -LiteralPath $pfad)) { continue }
         if (Test-StoreStub $pfad) { continue }
-        $version = Get-BefehlsAusgabe $pfad @('-c', 'import sys; print("%d.%d.%d" % sys.version_info[:3])')
-        if (-not $version) { continue }
-        $teile = $version.Split('.')
-        if ([int]$teile[0] -gt 3 -or ([int]$teile[0] -eq 3 -and [int]$teile[1] -ge 9)) {
+
+        # Nur echte Versionsnummern auswerten - alles andere ist eine
+        # Fehlermeldung und darf keinen Umwandlungsfehler ausloesen.
+        $ausgabe = Get-AusgabeText $pfad @($script:Probe, 'version')
+        if (-not $ausgabe -or $ausgabe -notmatch '(\d+)\.(\d+)\.(\d+)') { continue }
+        $haupt = [int]$Matches[1]
+        $neben = [int]$Matches[2]
+        $version = "$($Matches[1]).$($Matches[2]).$($Matches[3])"
+
+        if ($haupt -gt 3 -or ($haupt -eq 3 -and $neben -ge 9)) {
             return [pscustomobject]@{ Pfad = $pfad; Version = $version }
         }
+        if (-not $zuAlt) { $zuAlt = [pscustomobject]@{ Pfad = $pfad; Version = $version } }
+    }
+    if ($zuAlt) {
+        Write-Warnung "Gefunden wurde nur Python $($zuAlt.Version) - AutoCut braucht 3.9 oder neuer."
     }
     return $null
 }
@@ -176,6 +213,15 @@ Write-Kopf 'AutoCut - Einrichtung fuer Windows'
 Write-Info "Projektordner: $Root"
 Write-Info "Windows: $([Environment]::OSVersion.Version)  PowerShell: $($PSVersionTable.PSVersion)"
 
+if (-not (Test-Path -LiteralPath $Probe)) {
+    Write-Host ''
+    Write-Fehler "Die Datei tools\probe.py fehlt im Projektordner."
+    Write-Info   'Das ZIP wurde vermutlich nur teilweise entpackt.'
+    Write-Info   'Bitte das Projekt noch einmal komplett herunterladen und entpacken.'
+    Write-Host ''
+    exit 1
+}
+
 # --------------------------------------------------------- 1. Grundlagen ----
 
 Write-Schritt 'Python pruefen'
@@ -209,8 +255,8 @@ if ($python) {
     }
 
     # Tkinter gehoert zu Python, fehlt aber bei manchen Installationen.
-    $tk = Get-BefehlsAusgabe $python.Pfad @('-c', 'import tkinter; print("ja")')
-    if ($tk -eq 'ja') {
+    $tk = Get-AusgabeText $python.Pfad @($script:Probe, 'tkinter')
+    if ($tk -match '(?m)^\s*ja\s*$') {
         Write-Gut 'Tkinter (Programmoberflaeche)'
     } else {
         Write-Fehler 'Tkinter fehlt in dieser Python-Installation.'
@@ -269,42 +315,16 @@ if ($python) {
         & $python.Pfad -m pip install tkinterdnd2 --quiet 2>&1 | Out-Null
 
         # Jetzt wird geprueft, ob sich wirklich jedes Paket laden laesst.
-        $pruefer = @'
-import importlib, sys
-pakete = [("numpy","numpy"),("yaml","pyyaml"),("librosa","librosa"),
-          ("soundfile","soundfile"),("cv2","opencv-python")]
-fehlt = []
-for modul, name in pakete:
-    try:
-        m = importlib.import_module(modul)
-        print("  OK    %-16s %s" % (name, getattr(m, "__version__", "")))
-    except Exception as fehler:
-        fehlt.append(name)
-        print("  FEHLT %-16s %s" % (name, fehler))
-for modul, name in [("imageio_ffmpeg","imageio-ffmpeg"),("tkinterdnd2","tkinterdnd2")]:
-    try:
-        importlib.import_module(modul)
-        print("  OK    %-16s (optional)" % name)
-    except Exception:
-        print("  ---   %-16s (optional, nicht vorhanden)" % name)
-sys.exit(1 if fehlt else 0)
-'@
         Write-Host ''
         Write-Info 'Ladeprobe der Pakete:'
-        & $python.Pfad -c $pruefer | Out-Host
+        & $python.Pfad $script:Probe pakete | Out-Host
         if ($LASTEXITCODE -eq 0) {
             Write-Gut 'Alle benoetigten Pakete lassen sich fehlerfrei laden.'
             [void]$Erledigt.Add('Python-Pakete (numpy, pyyaml, librosa, soundfile, opencv-python)')
 
             # Jetzt kann AutoCut selbst sagen, welches ffmpeg es benutzt -
             # das schliesst das ueber pip mitgelieferte imageio-ffmpeg ein.
-            $ffmpegPruefer = @'
-import sys
-sys.path.insert(0, sys.argv[1])
-from autocut.ffmpeg_tools import ffmpeg_path, have_ffmpeg
-print(ffmpeg_path() if have_ffmpeg() else "")
-'@
-            $gefunden = (& $python.Pfad -c $ffmpegPruefer $Root 2>$null | Select-Object -First 1)
+            $gefunden = Get-LetzteZeile (Get-AusgabeText $python.Pfad @($script:Probe, 'ffmpeg'))
             if ($gefunden) {
                 Write-Gut "AutoCut benutzt dieses ffmpeg: $gefunden"
                 if (-not $ffmpegVersion) {

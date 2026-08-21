@@ -383,6 +383,7 @@ Video gelandet sind), nicht verwendete Clips mit Begründung und alle Hinweise.
 | **Video ist kürzer als der Song** | Es gibt zu wenig Filmmaterial. Mehr Clips nehmen oder eine Vorlage mit kürzeren Clips (`energetic`) wählen. |
 | **Clips erscheinen in falscher Reihenfolge** | In der App bei *Reihenfolge* auf `name` oder `date` umstellen. `auto` nimmt das Aufnahmedatum aus den Metadaten, sonst den Dateinamen. |
 | **Verarbeitung dauert lange** | Normal: die Analyse liest jeden Clip einmal komplett. Für Tests `--max-music-seconds 30` nutzen oder in der Vorlage `preset: ultrafast` setzen. |
+| **Setup.bat meldet „kann nicht in den Typ System.Int32 konvertiert werden"** | Alte Fassung des Skripts. Bitte das Projekt neu herunterladen – seit Version 1.0.1 werden alle Python-Abfragen über `tools/probe.py` gestellt, wodurch das Problem nicht mehr auftreten kann. |
 | **Setup.bat bricht ab: „winget nicht verfügbar"** | Älteres Windows 10. Python von python.org und ffmpeg von gyan.dev von Hand installieren (siehe oben), danach `Setup.bat` erneut starten. |
 | **„Die Ausführung von Skripts ist auf diesem System deaktiviert"** | Nicht die `.ps1` direkt starten, sondern `Setup.bat` – die setzt die nötige Ausnahme nur für diesen einen Aufruf. |
 | **Drag & Drop funktioniert nicht** | Optional: `pip install tkinterdnd2`. Ohne dieses Paket funktioniert weiterhin alles über *Durchsuchen...*. |
