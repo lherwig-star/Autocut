@@ -1,0 +1,13 @@
+# AutoCut – benötigte Pakete (alle Open Source, alles läuft lokal)
+numpy>=1.23
+pyyaml>=6.0
+librosa>=0.10        # Musik- und Beat-Analyse
+soundfile>=0.12      # Audiodateien lesen/schreiben
+opencv-python>=4.7   # Video-Analyse (Schärfe, Bewegung, Belichtung)
+
+# Optional, aber empfohlen:
+imageio-ffmpeg>=0.4  # bringt ffmpeg mit, falls es nicht im System installiert ist
+tkinterdnd2>=0.3     # Drag & Drop von Ordnern/Dateien in das Fenster
+
+# Nur zum Testen:
+# pytest>=7.0

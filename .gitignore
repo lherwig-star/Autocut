@@ -10,3 +10,6 @@ tests/_data/
 .venv/
 venv/
 .autocut_settings.json
+
+# Markierung der Ersteinrichtung (wird beim ersten Start erzeugt)
+.autocut_setup_done
