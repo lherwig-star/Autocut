@@ -1,6 +1,5 @@
 """Tests des Renderns: Übergänge, Farb-Look, Beat-Genauigkeit."""
 
-import os
 import subprocess
 
 import pytest

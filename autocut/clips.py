@@ -103,7 +103,8 @@ def load_clips(
 
     files.sort(key=lambda p: _natural_key(os.path.basename(p)))
 
-    clips: List[Clip] = []
+    # Schritt 1: alle Dateien einlesen und ihre möglichen Sortierschlüssel bestimmen.
+    entries = []
     skipped: List[str] = []
     total = len(files)
     for i, path in enumerate(files):
@@ -117,28 +118,39 @@ def load_clips(
         if not info.is_valid:
             skipped.append(os.path.basename(path))
             continue
-
         date_key, reason = _creation_time_key(info, path)
-        name_key = _natural_key_string(os.path.basename(path))
+        entries.append((path, info, date_key, reason))
 
-        if order == "name" or (order == "auto" and not date_key):
-            key, why = name_key, "Dateiname"
-        elif order == "date":
-            key = date_key or datetime.fromtimestamp(
-                os.path.getmtime(path)
-            ).strftime("%Y%m%d%H%M%S")
-            why = reason or "Änderungsdatum der Datei"
-        else:  # auto mit vorhandenem Datum
-            key, why = date_key, reason
-
-        clips.append(Clip(path=path, index=0, info=info, sort_key=key, sort_reason=why))
-
-    if not clips:
+    if not entries:
         raise NoClipsFoundError(
             f"Im Ordner '{folder}' konnte keine der {len(files)} Dateien gelesen werden.",
             "Die Dateien sind eventuell beschädigt oder in einem Format, das ffmpeg "
             "auf diesem Computer nicht unterstützt.",
         )
+
+    # Schritt 2: EINE Sortierart für alle Clips festlegen.
+    # Wichtig: Aufnahmedatum und Dateiname dürfen nicht gemischt werden – sonst
+    # kämen alle Clips mit Datum vor allen anderen, unabhängig davon, wann sie
+    # tatsächlich aufgenommen wurden.
+    alle_mit_datum = all(eintrag[2] for eintrag in entries)
+    if order == "date":
+        modus = "date"
+    elif order == "name":
+        modus = "name"
+    else:  # auto: Datum nur, wenn es für ALLE Clips vorliegt
+        modus = "date" if alle_mit_datum else "name"
+
+    clips: List[Clip] = []
+    for path, info, date_key, reason in entries:
+        if modus == "date":
+            key = date_key or datetime.fromtimestamp(
+                os.path.getmtime(path)).strftime("%Y%m%d%H%M%S")
+            why = reason or "Änderungsdatum der Datei"
+        else:
+            key = _natural_key_string(os.path.basename(path))
+            why = ("Dateiname" if alle_mit_datum or order == "name"
+                   else "Dateiname (nicht alle Clips haben ein Aufnahmedatum)")
+        clips.append(Clip(path=path, index=0, info=info, sort_key=key, sort_reason=why))
 
     # Chronologisch sortieren. Bei gleichem Schlüssel entscheidet der Dateiname,
     # damit die Reihenfolge bei jedem Lauf identisch (deterministisch) ist.

@@ -7,7 +7,7 @@ Neue Dateien tauchen automatisch in CLI und GUI auf – ohne Codeänderung.
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from .errors import TemplateError

@@ -122,12 +122,16 @@ def analyze_clip(
         while True:
             if should_cancel and should_cancel():
                 raise CancelledError()
+            # Nicht benötigte Bilder nur "greifen" statt vollständig zu
+            # dekodieren – das beschleunigt die Analyse langer Clips deutlich.
+            if read_index % frame_step != 0:
+                if not cap.grab():
+                    break
+                read_index += 1
+                continue
             ok, frame = cap.read()
             if not ok:
                 break
-            if read_index % frame_step != 0:
-                read_index += 1
-                continue
             timestamp = read_index / fps
             read_index += 1
             if timestamp > duration + 1.0:

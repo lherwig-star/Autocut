@@ -16,7 +16,7 @@ import tempfile
 from dataclasses import dataclass
 from typing import Callable, List, Optional
 
-from .edit_plan import EditPlan, Moment
+from .edit_plan import EditPlan
 from .errors import CancelledError, RenderError
 from .ffmpeg_tools import ffmpeg_path, run_cancellable
 from .templates import Template

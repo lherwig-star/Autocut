@@ -356,6 +356,12 @@ class AutoCutApp:
                 return
 
         self.set_running(True)
+        # Ergebnis des vorherigen Laufs verwerfen, damit die Knöpfe unten
+        # nie auf ein altes Video zeigen.
+        self.result = None
+        for knopf in (self.open_video_button, self.open_folder_button,
+                      self.save_report_button):
+            knopf.configure(state="disabled")
         self.clear_text(self.report_text)
         self.log("")
         self.log("=" * 60)

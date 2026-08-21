@@ -10,8 +10,7 @@ import statistics
 import pytest
 
 from autocut.video_analysis import (
-    SHARPNESS_REFERENCE, absolute_quality, analyze_clip, quality_label,
-    score_curve, window_score,
+    SHARPNESS_REFERENCE, analyze_clip, quality_label, score_curve, window_score,
 )
 
 
