@@ -32,7 +32,10 @@ OPTIONAL = [("imageio_ffmpeg", "imageio-ffmpeg", "ffmpeg-Notfallversorgung")]
 # Optional: erlaubt Drag & Drop von Ordnern in das Fenster.
 OPTIONAL += [("tkinterdnd2", "tkinterdnd2", "Drag & Drop")]
 
-MARKER_FILE = os.path.join(PROJECT_ROOT, ".autocut_setup_done")
+# Rückmeldungen von ensure_packages()
+BEREIT = "bereit"        # alles vorhanden, Oberfläche kann starten
+NEUSTART = "neustart"    # es wurde installiert, AutoCut startet sich neu
+GESCHEITERT = "fehler"   # Einrichtung nicht möglich
 
 
 def missing_packages(pakete):
@@ -116,23 +119,19 @@ def setup_window(fehlend):
     return fenster, status
 
 
-def ensure_packages() -> bool:
-    """Sorgt dafür, dass alle Pflichtpakete da sind.
+def ensure_packages() -> str:
+    """Sorgt dafür, dass alle Pflichtpakete vorhanden sind.
 
-    Rückgabe ``True``  = alles vorhanden, die Oberfläche kann starten.
-    Rückgabe ``False`` = es wurde installiert (AutoCut startet sich neu)
-    oder die Einrichtung ist gescheitert.
+    Liefert BEREIT, NEUSTART oder GESCHEITERT.
 
-    Die optionalen Pakete werden nur beim allerersten Start versucht. So
-    wartet AutoCut später nicht bei jedem Start erneut auf einen Download,
-    der vielleicht gar nicht klappt.
+    Wichtig: Nur wenn **Pflicht**pakete nachinstalliert wurden, startet sich
+    AutoCut neu. Fehlen ausschließlich optionale Zusätze (Drag & Drop), wird
+    nichts installiert und die Oberfläche öffnet sich sofort – sonst würde
+    jeder erste Start unnötig ein Installationsfenster zeigen.
     """
     fehlend = missing_packages(REQUIRED)
-    erster_start = not os.path.exists(MARKER_FILE)
-    optional_fehlend = missing_packages(OPTIONAL) if erster_start else []
-
-    if not fehlend and not optional_fehlend:
-        return True
+    if not fehlend:
+        return BEREIT
 
     # Ohne Tkinter ist überhaupt keine Oberfläche möglich.
     try:
@@ -145,11 +144,13 @@ def ensure_packages() -> bool:
             input("Zum Beenden Eingabetaste drücken ...")
         except EOFError:
             pass
-        return False
+        return GESCHEITERT
 
     import threading
 
-    fenster, status = setup_window(fehlend or optional_fehlend)
+    # Wenn ohnehin installiert wird, kommen die optionalen Zusätze gleich mit.
+    optional_fehlend = missing_packages(OPTIONAL)
+    fenster, status = setup_window(fehlend)
     ergebnis = {}
 
     def arbeit():
@@ -157,7 +158,7 @@ def ensure_packages() -> bool:
         # Pflichtpakete: bei einem Fehler sofort abbrechen und melden.
         gescheitert, ausgabe = install([p[1] for p in fehlend], melden,
                                        stop_on_error=True)
-        # Optionale Pakete: ein Fehler ist kein Beinbruch, einfach weiter.
+        # Optionale Pakete: ein Fehlschlag ist kein Beinbruch.
         if not gescheitert and optional_fehlend:
             install([p[1] for p in optional_fehlend], melden, stop_on_error=False)
         ergebnis["gescheitert"] = gescheitert
@@ -167,14 +168,6 @@ def ensure_packages() -> bool:
     threading.Thread(target=arbeit, daemon=True).start()
     fenster.mainloop()
     fenster.destroy()
-
-    # Merken, dass die Ersteinrichtung gelaufen ist – auch wenn optionale
-    # Pakete gescheitert sind, damit es beim nächsten Start zügig weitergeht.
-    try:
-        with open(MARKER_FILE, "w", encoding="utf-8") as handle:
-            handle.write("Ersteinrichtung erledigt – diese Datei darf gelöscht werden.\n")
-    except OSError:
-        pass
 
     if ergebnis.get("gescheitert"):
         import tkinter as tk
@@ -193,16 +186,21 @@ def ensure_packages() -> bool:
               "Windows-Terminal und gib ein:\n\n    pip install "
             + " ".join(ergebnis["gescheitert"]))
         wurzel.destroy()
-        return False
+        return GESCHEITERT
 
     # Neu starten, damit die frisch installierten Pakete geladen werden.
     subprocess.Popen([sys.executable] + sys.argv, cwd=PROJECT_ROOT, close_fds=True)
-    return False
+    return NEUSTART
 
 
 def main() -> int:
-    if not ensure_packages():
+    zustand = ensure_packages()
+    if zustand == GESCHEITERT:
         return 1
+    if zustand == NEUSTART:
+        # Kein Fehler: AutoCut läuft im neu gestarteten Fenster weiter.
+        return 0
+
     from gui.app import launch
 
     return launch()

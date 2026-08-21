@@ -30,7 +30,45 @@ automatisch ein fertiges Video – die Schnitte liegen dabei exakt auf den Beats
 
 ## 1. Installation unter Windows
 
-Du brauchst genau zwei Dinge: **Python** und **ffmpeg**. Beides ist kostenlos.
+### Der schnelle Weg: ein Doppelklick
+
+1. Projekt herunterladen (grüner Knopf *Code* → *Download ZIP*) und entpacken,
+   zum Beispiel nach `C:\Users\DeinName\AutoCut`.
+2. **Doppelklick auf `Setup.bat`**.
+
+Das Skript erledigt alles allein:
+
+| Schritt | Was passiert |
+|---|---|
+| 1 | Prüft Python – fehlt es, wird es über `winget` installiert |
+| 2 | Prüft ffmpeg und ffprobe – fehlen sie, werden sie über `winget` installiert |
+| 3 | Installiert alle Python-Pakete und prüft, ob sich jedes laden lässt |
+| 4 | Macht einen echten Funktionstest: erzeugt Testclips und einen Test-Song und rendert daraus ein Video |
+| 5 | Startet die Oberfläche einmal zur Kontrolle |
+| 6 | Legt die Desktop-Verknüpfung **AutoCut** an (mit eigenem Symbol) |
+
+Am Ende steht in einfacher Sprache, was eingerichtet wurde und was noch fehlt.
+Fragt Windows während der Installation nach Erlaubnis, bitte mit **Ja** bestätigen.
+
+> Wenn du magst, kannst du auch einzelne Schritte auslassen:
+> `Setup.bat -NoGuiTest`, `Setup.bat -NoShortcut` oder `Setup.bat -SkipSelfTest`.
+
+**Später jederzeit prüfen, ob noch alles läuft:**
+
+```bat
+python autocut.py --selftest
+```
+
+Der Selbsttest erzeugt Testdaten, rendert ein kleines Video, prüft das Ergebnis
+und löscht danach alles wieder. Am Ende steht entweder *„AutoCut funktioniert auf
+diesem Rechner"* oder genau, was fehlt.
+
+---
+
+### Der Weg von Hand
+
+Falls du lieber selbst installierst: Du brauchst genau zwei Dinge – **Python**
+und **ffmpeg**. Beides ist kostenlos.
 
 ### Schritt 1: Python installieren
 
@@ -104,7 +142,8 @@ ausführen.**
 
 ## 2. Desktop-Verknüpfung anlegen
 
-So bekommst du AutoCut mit einem Doppelklick auf den Desktop:
+`Setup.bat` legt die Verknüpfung bereits an. Falls das nicht geklappt hat oder
+du sie noch einmal brauchst, geht es auch von Hand:
 
 1. Öffne den AutoCut-Ordner im Explorer.
 2. **Rechtsklick** auf die Datei `AutoCut.pyw`.
@@ -344,6 +383,8 @@ Video gelandet sind), nicht verwendete Clips mit Begründung und alle Hinweise.
 | **Video ist kürzer als der Song** | Es gibt zu wenig Filmmaterial. Mehr Clips nehmen oder eine Vorlage mit kürzeren Clips (`energetic`) wählen. |
 | **Clips erscheinen in falscher Reihenfolge** | In der App bei *Reihenfolge* auf `name` oder `date` umstellen. `auto` nimmt das Aufnahmedatum aus den Metadaten, sonst den Dateinamen. |
 | **Verarbeitung dauert lange** | Normal: die Analyse liest jeden Clip einmal komplett. Für Tests `--max-music-seconds 30` nutzen oder in der Vorlage `preset: ultrafast` setzen. |
+| **Setup.bat bricht ab: „winget nicht verfügbar"** | Älteres Windows 10. Python von python.org und ffmpeg von gyan.dev von Hand installieren (siehe oben), danach `Setup.bat` erneut starten. |
+| **„Die Ausführung von Skripts ist auf diesem System deaktiviert"** | Nicht die `.ps1` direkt starten, sondern `Setup.bat` – die setzt die nötige Ausnahme nur für diesen einen Aufruf. |
 | **Drag & Drop funktioniert nicht** | Optional: `pip install tkinterdnd2`. Ohne dieses Paket funktioniert weiterhin alles über *Durchsuchen...*. |
 | **Hochkant-Videos haben schwarze Ränder** | Das Bild wird ins Zielformat eingepasst statt verzerrt. Für Hochkant-Videos in der Vorlage `output: width: 1080, height: 1920` setzen. |
 
@@ -354,7 +395,12 @@ Video gelandet sind), nicht verwendete Clips mit Begründung und alle Hinweise.
 ### Aufbau
 
 ```
+Setup.bat           Einrichtung per Doppelklick (ruft setup_windows.ps1)
+setup_windows.ps1   prüft/installiert alles, testet, legt die Verknüpfung an
+AutoCut.pyw         Programmstart ohne Konsolenfenster
+AutoCut.ico         Symbol für die Verknüpfung (erzeugt mit tools/make_icon.py)
 autocut/            Verarbeitungslogik (kennt keine Oberfläche)
+  selftest.py         Selbsttest: prüft diesen Rechner von Python bis Rendern
   audio_analysis.py   Beats, Tempo, Energie-Kurve (librosa)
   video_analysis.py   Schärfe, Bewegung, Belichtung, Verwacklung (OpenCV)
   edit_plan.py        Beat-Raster, Verteilung, Momentauswahl

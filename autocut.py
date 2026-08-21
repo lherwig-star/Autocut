@@ -111,6 +111,8 @@ def build_parser() -> argparse.ArgumentParser:
                         help="Alle verfügbaren Vorlagen anzeigen")
     parser.add_argument("--gui", action="store_true",
                         help="Die grafische Oberfläche starten")
+    parser.add_argument("--selftest", action="store_true",
+                        help="Prüfen, ob AutoCut auf diesem Rechner vollständig läuft")
     parser.add_argument("--version", "-V", action="version",
                         version=f"AutoCut {__version__}")
     return parser
@@ -119,6 +121,11 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv=None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    if args.selftest:
+        from autocut.selftest import run_selftest
+
+        return 0 if run_selftest() else 1
 
     if args.gui:
         from gui.app import launch
