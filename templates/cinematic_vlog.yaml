@@ -1,0 +1,64 @@
+# ---------------------------------------------------------------------------
+# AutoCut-Vorlage: cinematic_vlog
+# Ruhiger, filmischer Schnitt: lange Einstellungen, stabile Bilder,
+# weiche Crossfades und ein leicht warmer, entsättigter Look.
+#
+# Kopiere diese Datei und ändere die Werte, um eine eigene Vorlage zu bauen.
+# Der Dateiname (ohne .yaml) ist der Name, den du in der App auswählst.
+# ---------------------------------------------------------------------------
+
+name: cinematic_vlog
+description: "Ruhige, filmische Schnitte mit Crossfades und warmem Farb-Look"
+
+# Schnittfrequenz: Schnitt alle 8 Beats -> lange, ruhige Einstellungen.
+beats_per_cut: 8
+min_clip_length: 2.0
+max_clip_length: 6.0
+
+# Leise Songpassagen bekommen längere Clips.
+adaptive_to_energy: true
+beats_per_cut_quiet: 12
+beats_per_cut_loud: 6
+
+# Gewichtung der Analyse: Schärfe und Ruhe im Bild zählen am meisten.
+weights:
+  sharpness: 1.4
+  motion: 0.4
+  exposure: 1.0
+  stability: 1.8
+
+# 0.0 = ruhige Shots bevorzugt, 1.0 = viel Action bevorzugt
+prefer_motion: 0.2
+
+# Abzug, wenn im gewählten Moment ein harter Szenenwechsel liegt.
+scene_cut_penalty: 1.0
+
+# Übergang zwischen den Clips
+transition: crossfade
+transition_duration: 0.7
+
+# Farb-Look: leicht warm, weicher Kontrast, dezent entsättigt
+color:
+  enabled: true
+  brightness: 0.02
+  contrast: 1.06
+  saturation: 0.92
+  gamma: 1.02
+  temperature: 0.18     # positiv = wärmer, negativ = kühler
+  vignette: true
+  lut: ""               # optional: Pfad zu einer .cube-Datei
+
+output:
+  width: 1920
+  height: 1080
+  fps: 30
+  video_bitrate: "14M"
+  audio_bitrate: "192k"
+  audio_fade_out: 2.5
+  preset: medium
+
+# Mindestabstand zwischen zwei gewählten Momenten desselben Clips
+min_gap_between_moments: 1.0
+# Sekunden am Anfang/Ende jedes Clips ignorieren (z.B. Kamera-Anfassen)
+skip_start: 0.4
+skip_end: 0.4

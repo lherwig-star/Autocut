@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+tests/_data/
+*.mp4
+*.mov
+*.mp3
+*.wav
+!tests/**/*.py
+.venv/
+venv/
+.autocut_settings.json

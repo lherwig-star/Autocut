@@ -1,0 +1,51 @@
+# ---------------------------------------------------------------------------
+# AutoCut-Vorlage: energetic
+# Schnelle Schnitte auf jeden Beat, viel Bewegung, harte Schnitte,
+# knackiger Kontrast. Ideal für Sport, Party, Action.
+# ---------------------------------------------------------------------------
+
+name: energetic
+description: "Schnitt auf jeden Beat, viel Bewegung, harte Schnitte"
+
+beats_per_cut: 1
+min_clip_length: 0.35
+max_clip_length: 1.6
+
+adaptive_to_energy: false
+beats_per_cut_quiet: 2
+beats_per_cut_loud: 1
+
+weights:
+  sharpness: 1.0
+  motion: 2.0
+  exposure: 0.8
+  stability: 0.3
+
+prefer_motion: 0.95
+scene_cut_penalty: 0.2
+
+transition: hard_cut
+transition_duration: 0.15
+
+color:
+  enabled: true
+  brightness: 0.0
+  contrast: 1.15
+  saturation: 1.18
+  gamma: 0.98
+  temperature: 0.0
+  vignette: false
+  lut: ""
+
+output:
+  width: 1920
+  height: 1080
+  fps: 30
+  video_bitrate: "14M"
+  audio_bitrate: "192k"
+  audio_fade_out: 1.5
+  preset: medium
+
+min_gap_between_moments: 0.25
+skip_start: 0.2
+skip_end: 0.2

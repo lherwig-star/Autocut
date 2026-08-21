@@ -1,0 +1,52 @@
+# ---------------------------------------------------------------------------
+# AutoCut-Vorlage: travel_recap
+# Mischung aus beidem: in leisen Songpassagen ruhige, lange Einstellungen,
+# im Drop/Refrain schnelle Schnitte auf den Beat.
+# ---------------------------------------------------------------------------
+
+name: travel_recap
+description: "Mix: ruhig in leisen Passagen, schnell im Drop/Refrain"
+
+beats_per_cut: 4
+min_clip_length: 0.6
+max_clip_length: 4.0
+
+# Kernstück dieser Vorlage: Schnittlänge folgt der Energie des Songs.
+adaptive_to_energy: true
+beats_per_cut_quiet: 8    # leise Stelle -> Schnitt alle 8 Beats
+beats_per_cut_loud: 1     # Drop -> Schnitt auf jeden Beat
+
+weights:
+  sharpness: 1.2
+  motion: 1.1
+  exposure: 1.2
+  stability: 1.0
+
+prefer_motion: 0.55
+scene_cut_penalty: 0.6
+
+transition: hard_cut
+transition_duration: 0.35
+
+color:
+  enabled: true
+  brightness: 0.01
+  contrast: 1.1
+  saturation: 1.1
+  gamma: 1.0
+  temperature: 0.08
+  vignette: false
+  lut: ""
+
+output:
+  width: 1920
+  height: 1080
+  fps: 30
+  video_bitrate: "14M"
+  audio_bitrate: "192k"
+  audio_fade_out: 2.0
+  preset: medium
+
+min_gap_between_moments: 0.5
+skip_start: 0.3
+skip_end: 0.3
